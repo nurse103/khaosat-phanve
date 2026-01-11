@@ -7,14 +7,7 @@ import {
 } from 'recharts'
 
 // Đáp án đúng cho các câu hỏi kiến thức (30 câu: Phần III 1-20 và Phần IV 21-30)
-const CORRECT_ANSWERS = {
-  'III_1': 'B', 'III_2': 'B', 'III_3': 'B', 'III_4': 'C', 'III_5': 'C',
-  'III_6': 'B', 'III_7': 'B', 'III_8': 'C', 'III_9': 'C', 'III_10': 'B',
-  'III_11': 'B', 'III_12': 'B', 'III_13': 'C', 'III_14': 'D', 'III_15': 'D',
-  'III_16': 'B', 'III_17': 'B', 'III_18': 'B', 'III_19': 'B', 'III_20': 'B',
-  'IV_21': 'A', 'IV_22': 'B', 'IV_23': 'C', 'IV_24': 'C', 'IV_25': 'D',
-  'IV_26': 'B', 'IV_27': 'C', 'IV_28': 'B', 'IV_29': 'B', 'IV_30': 'A'
-}
+
 
 // Mapping câu hỏi sang tên cột trong database
 const QUESTION_COLUMNS = {
@@ -56,7 +49,7 @@ export default function AdminDashboard() {
   const [handledCountData, setHandledCountData] = useState([])
   const [questionStats, setQuestionStats] = useState([])
   const [totalResponses, setTotalResponses] = useState(0)
-  const [avgScore, setAvgScore] = useState(0)
+
 
   useEffect(() => {
     fetchResponses()
@@ -88,10 +81,6 @@ export default function AdminDashboard() {
   const calculateAllStats = (data) => {
     if (data.length === 0) return
     setTotalResponses(data.length)
-
-    // Tính điểm trung bình
-    const totalScore = data.reduce((sum, item) => sum + (item.diem_so || 0), 0)
-    setAvgScore(data.length > 0 ? Math.round(totalScore / data.length) : 0)
 
     // Thống kê theo giới tính (biểu đồ tròn)
     const genderCount = {}
@@ -153,17 +142,18 @@ export default function AdminDashboard() {
     })
     setHandledData(Object.entries(confidentCount).map(([name, value]) => ({ name, 'Số lượng': value })))
 
-    // Thống kê 30 câu hỏi kiến thức (Đúng/Sai)
+    // Thống kê 30 câu hỏi kiến thức (Phân phối đáp án)
     const qStats = []
-    Object.keys(CORRECT_ANSWERS).forEach(qId => {
+    Object.keys(QUESTION_COLUMNS).forEach(qId => {
+      // Chỉ xử lý các câu hỏi phần III và IV
+      if (!qId.startsWith('III_') && !qId.startsWith('IV_')) return
+
       const colName = QUESTION_COLUMNS[qId]
-      let correctCount = 0
-      let wrongCount = 0
+      const answerCounts = {}
 
       data.forEach(item => {
-        const answer = item[colName]
-        if (answer === 'Đúng') correctCount++
-        else if (answer === 'Sai') wrongCount++
+        const answer = item[colName] || 'Không trả lời'
+        answerCounts[answer] = (answerCounts[answer] || 0) + 1
       })
 
       // Lấy số câu từ qId (III_1 -> 1, IV_21 -> 21)
@@ -171,13 +161,14 @@ export default function AdminDashboard() {
         ? parseInt(qId.replace('III_', ''))
         : parseInt(qId.replace('IV_', ''))
 
+      // Chuyển answerCounts thành array cho Recharts nếu cần hoặc giữ nguyên object
+      // Ở đây ta giữ cấu trúc phẳng để dễ hiển thị
       qStats.push({
         question: qId.includes('III_') ? `Câu ${questionNum}` : `Câu ${questionNum}`,
         questionId: qId,
         questionNum,
-        'Đúng': correctCount,
-        'Sai': wrongCount,
-        total: correctCount + wrongCount
+        ...answerCounts, // Spread các lựa chọn ra (ví dụ: A: 5, B: 2...)
+        total: data.length
       })
     })
 
@@ -213,8 +204,7 @@ export default function AdminDashboard() {
       'iv_21_do_phan_ve_penicillin', 'iv_22_xu_tri_dau_tien', 'iv_23_do_phan_ve_truyen_dich',
       'iv_24_hanh_dong_quan_trong', 'iv_25_thanh_phan_mau', 'iv_26_hanh_dong_truyen_mau',
       'iv_27_do_phan_ve_ong_dot', 'iv_28_tinh_lieu_adrenaline', 'iv_29_xu_tri_uu_tien',
-      'iv_30_xu_tri_di_ung_khang_sinh',
-      'so_cau_dung', 'diem_so'
+      'iv_30_xu_tri_di_ung_khang_sinh'
     ]
 
     const headers = [
@@ -224,8 +214,7 @@ export default function AdminDashboard() {
       'III.1', 'III.2', 'III.3', 'III.4', 'III.5', 'III.6', 'III.7', 'III.8',
       'III.9', 'III.10', 'III.11', 'III.12', 'III.13', 'III.14', 'III.15',
       'III.16', 'III.17', 'III.18', 'III.19', 'III.20',
-      'IV.21', 'IV.22', 'IV.23', 'IV.24', 'IV.25', 'IV.26', 'IV.27', 'IV.28', 'IV.29', 'IV.30',
-      'Số câu đúng', 'Điểm %'
+      'IV.21', 'IV.22', 'IV.23', 'IV.24', 'IV.25', 'IV.26', 'IV.27', 'IV.28', 'IV.29', 'IV.30'
     ]
 
     const excelData = responses.map((row, index) => {
@@ -245,17 +234,6 @@ export default function AdminDashboard() {
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Kết quả khảo sát')
-
-    // Thêm sheet thống kê câu hỏi
-    const questionSheetData = questionStats.map((q, idx) => ({
-      'STT': idx + 1,
-      'Câu hỏi': q.questionId,
-      'Số trả lời đúng': q['Đúng'],
-      'Số trả lời sai': q['Sai'],
-      'Tỷ lệ đúng (%)': q.total > 0 ? Math.round((q['Đúng'] / q.total) * 100) : 0
-    }))
-    const ws2 = XLSX.utils.json_to_sheet(questionSheetData)
-    XLSX.utils.book_append_sheet(wb, ws2, 'Thống kê câu hỏi')
 
     XLSX.writeFile(wb, `KhaoSat_PhanVe_${new Date().toISOString().split('T')[0]}.xlsx`)
   }
@@ -318,8 +296,8 @@ export default function AdminDashboard() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 font-medium transition ${activeTab === tab
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
               {tab === 'overview' ? '📊 Tổng quan' : tab === 'questions' ? '📋 Thống kê câu hỏi' : '📄 Dữ liệu chi tiết'}
@@ -338,20 +316,11 @@ export default function AdminDashboard() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
-              <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
-              <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
-                <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
-                <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
-              <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-green-500">⭐</span>
-              <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
-                <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
-                <p className="text-gray-500 text-sm mt-2">Điểm trung bình</p>
-              </div>
+          <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
+            <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
+            <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
+              <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
+              <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
             </div>
           </div>
 
@@ -488,9 +457,9 @@ export default function AdminDashboard() {
       {/* Tab: Thống kê câu hỏi */}
       {activeTab === 'questions' && (
         <div className="space-y-6">
-          {/* Biểu đồ cột thống kê Đúng/Sai cho 30 câu */}
+          {/* Biểu đồ cột thống kê Phân phối đáp án */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Biểu đồ kết quả 30 câu hỏi kiến thức</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Phân phối đáp án (A, B, C, D)</h3>
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={questionStats} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -499,8 +468,10 @@ export default function AdminDashboard() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="Đúng" fill="#00C49F" name="Đúng" />
-                  <Bar dataKey="Sai" fill="#FF6384" name="Sai" />
+                  <Bar dataKey="A" stackId="a" fill="#8884d8" name="A" />
+                  <Bar dataKey="B" stackId="a" fill="#82ca9d" name="B" />
+                  <Bar dataKey="C" stackId="a" fill="#ffc658" name="C" />
+                  <Bar dataKey="D" stackId="a" fill="#FF8042" name="D" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -508,17 +479,18 @@ export default function AdminDashboard() {
 
           {/* Bảng thống kê chi tiết */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Bảng thống kê chi tiết 30 câu hỏi</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Bảng thống kê chi tiết</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse border border-gray-300">
                 <thead>
                   <tr className="bg-blue-600 text-white">
                     <th className="border border-gray-300 px-4 py-2 text-center">STT</th>
                     <th className="border border-gray-300 px-4 py-2 text-center">Câu hỏi</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Đáp án đúng</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Số trả lời Đúng</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Số trả lời Sai</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Tỷ lệ đúng</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center">A</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center">B</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center">C</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center">D</th>
+                    <th className="border border-gray-300 px-4 py-2 text-center">Tổng</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -526,20 +498,11 @@ export default function AdminDashboard() {
                     <tr key={q.questionId} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                       <td className="border border-gray-300 px-4 py-2 text-center">{idx + 1}</td>
                       <td className="border border-gray-300 px-4 py-2 text-center font-medium">{q.questionId}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center font-bold text-blue-600">
-                        {CORRECT_ANSWERS[q.questionId]}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center text-green-600 font-semibold">
-                        {q['Đúng']}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center text-red-600 font-semibold">
-                        {q['Sai']}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">
-                        <span className={`font-bold ${q.total > 0 && (q['Đúng'] / q.total) >= 0.5 ? 'text-green-600' : 'text-red-600'}`}>
-                          {q.total > 0 ? Math.round((q['Đúng'] / q.total) * 100) : 0}%
-                        </span>
-                      </td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{q['A'] || 0}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{q['B'] || 0}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{q['C'] || 0}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center">{q['D'] || 0}</td>
+                      <td className="border border-gray-300 px-4 py-2 text-center font-bold">{q.total}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -567,8 +530,6 @@ export default function AdminDashboard() {
                     <th className="border px-3 py-2 text-left">Giới tính</th>
                     <th className="border px-3 py-2 text-left">Trình độ</th>
                     <th className="border px-3 py-2 text-left">Thâm niên</th>
-                    <th className="border px-3 py-2 text-center">Số câu đúng</th>
-                    <th className="border px-3 py-2 text-center">Điểm %</th>
                     <th className="border px-3 py-2 text-center">Chi tiết</th>
                   </tr>
                 </thead>
@@ -583,14 +544,6 @@ export default function AdminDashboard() {
                       <td className="border px-3 py-2">{response.i_2_gioi_tinh || '-'}</td>
                       <td className="border px-3 py-2">{response.i_3_trinh_do || '-'}</td>
                       <td className="border px-3 py-2">{response.i_4_tham_nien || '-'}</td>
-                      <td className="border px-3 py-2 text-center font-bold text-blue-600">
-                        {response.so_cau_dung || 0}/30
-                      </td>
-                      <td className="border px-3 py-2 text-center">
-                        <span className={`font-bold ${(response.diem_so || 0) >= 50 ? 'text-green-600' : 'text-red-600'}`}>
-                          {response.diem_so || 0}%
-                        </span>
-                      </td>
                       <td className="border px-3 py-2 text-center">
                         <button
                           onClick={() => setSelectedResponse(response)}
@@ -642,27 +595,22 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Điểm số */}
-              <div className="bg-blue-50 p-4 rounded-lg mb-6 text-center">
-                <p className="text-lg text-gray-600">Kết quả</p>
-                <p className="text-4xl font-bold text-blue-600">{selectedResponse.diem_so || 0}%</p>
-                <p className="text-gray-500">({selectedResponse.so_cau_dung || 0}/30 câu đúng)</p>
-              </div>
-
               {/* Chi tiết câu trả lời */}
               <h4 className="font-bold text-lg mb-3">Chi tiết 30 câu hỏi kiến thức:</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {Object.keys(CORRECT_ANSWERS).map(qId => {
+                {Object.keys(QUESTION_COLUMNS).map(qId => {
+                  // Only show III and IV questions
+                  if (!qId.startsWith('III_') && !qId.startsWith('IV_')) return null
+
                   const colName = QUESTION_COLUMNS[qId]
                   const answer = selectedResponse[colName]
-                  const isCorrect = answer === 'Đúng'
+
                   return (
                     <div
                       key={qId}
-                      className={`p-2 rounded text-sm ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                      className="p-2 rounded text-sm bg-gray-100 text-gray-800"
                     >
                       <span className="font-medium">{qId}:</span> {answer || '-'}
-                      <span className="ml-1">{isCorrect ? '✓' : '✗'}</span>
                     </div>
                   )
                 })}
