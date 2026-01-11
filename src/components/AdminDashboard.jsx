@@ -335,24 +335,22 @@ export default function AdminDashboard() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <p className="text-gray-500 text-sm">Tổng phản hồi</p>
-              <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col items-center justify-center">
+                <div className="mb-2">
+                  <span className="inline-block text-5xl text-blue-500">📥</span>
+                </div>
+                <p className="text-gray-500 text-sm">Tổng phản hồi</p>
+                <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col items-center justify-center">
+                <div className="mb-2">
+                  <span className="inline-block text-5xl text-green-500">⭐</span>
+                </div>
+                <p className="text-gray-500 text-sm">Điểm trung bình</p>
+                <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
+              </div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <p className="text-gray-500 text-sm">Điểm trung bình</p>
-              <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <p className="text-gray-500 text-sm">Số câu đúng TB</p>
-              <p className="text-3xl font-bold text-purple-600">{Math.round(avgScore * 30 / 100)}/30</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4 text-center">
-              <p className="text-gray-500 text-sm">Tổng số câu hỏi</p>
-              <p className="text-3xl font-bold text-orange-600">30</p>
-            </div>
-          </div>
 
           {/* Row 1: Giới tính + Trình độ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
