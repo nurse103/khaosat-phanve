@@ -5,11 +5,9 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
+import { SECTIONS } from '../lib/questionData'
 
-// Đáp án đúng cho các câu hỏi kiến thức (30 câu: Phần III 1-20 và Phần IV 21-30)
-
-
-// Mapping câu hỏi sang tên cột trong database
+// Mapping câu hỏi sang tên cột trong database (Vẫn cần để truy xuất dữ liệu từ row)
 const QUESTION_COLUMNS = {
   'III_1': 'iii_1_phan_ve_la_gi', 'III_2': 'iii_2_dau_hieu_som',
   'III_3': 'iii_3_nguyen_nhan_benh_vien', 'III_4': 'iii_4_khong_phai_trieu_chung',
@@ -45,11 +43,10 @@ export default function AdminDashboard() {
   const [experienceData, setExperienceData] = useState([])
   const [trainingData, setTrainingData] = useState([])
   const [witnessedData, setWitnessedData] = useState([])
-  const [handledData, setHandledData] = useState([])
   const [handledCountData, setHandledCountData] = useState([])
-  const [questionStats, setQuestionStats] = useState([])
+  const [handledData, setHandledData] = useState([])
+  const [detailedStats, setDetailedStats] = useState([])
   const [totalResponses, setTotalResponses] = useState(0)
-
 
   useEffect(() => {
     fetchResponses()
@@ -142,46 +139,52 @@ export default function AdminDashboard() {
     })
     setHandledData(Object.entries(confidentCount).map(([name, value]) => ({ name, 'Số lượng': value })))
 
-    // Thống kê 30 câu hỏi kiến thức (Phân phối đáp án)
-    const qStats = []
-    Object.keys(QUESTION_COLUMNS).forEach(qId => {
-      // Chỉ xử lý các câu hỏi phần III và IV
-      if (!qId.startsWith('III_') && !qId.startsWith('IV_')) return
+    // === THỐNG KÊ CHI TIẾT TỪNG CÂU HỎI (Phần III và IV) ===
+    const stats = []
 
-      const colName = QUESTION_COLUMNS[qId]
-      const answerCounts = {}
+    // Lấy danh sách câu hỏi từ SECTIONS
+    const knowledgeSections = SECTIONS.filter(s => s.id === 'knowledge' || s.id === 'treatment')
 
-      data.forEach(item => {
-        const answer = item[colName] || 'Không trả lời'
-        answerCounts[answer] = (answerCounts[answer] || 0) + 1
-      })
+    knowledgeSections.forEach(section => {
+      section.questions.forEach(question => {
+        const colName = QUESTION_COLUMNS[question.id]
+        if (!colName) return
 
-      // Lấy số câu từ qId (III_1 -> 1, IV_21 -> 21)
-      const questionNum = qId.includes('III_')
-        ? parseInt(qId.replace('III_', ''))
-        : parseInt(qId.replace('IV_', ''))
+        const optionCounts = {}
+        // Khởi tạo count = 0 cho tất cả các option có sẵn
+        if (question.options) {
+          question.options.forEach(opt => {
+            optionCounts[opt] = 0
+          })
+        }
 
-      // Chuyển answerCounts thành array cho Recharts nếu cần hoặc giữ nguyên object
-      // Ở đây ta giữ cấu trúc phẳng để dễ hiển thị
-      qStats.push({
-        question: qId.includes('III_') ? `Câu ${questionNum}` : `Câu ${questionNum}`,
-        questionId: qId,
-        questionNum,
-        ...answerCounts, // Spread các lựa chọn ra (ví dụ: A: 5, B: 2...)
-        total: data.length
+        // Đếm số lượng phản hồi cho từng option
+        data.forEach(item => {
+          const userVal = item[colName]
+          if (userVal) {
+            // Chuẩn hóa một chút nếu cần, ở đây giả sử chính xác
+            if (optionCounts.hasOwnProperty(userVal)) {
+              optionCounts[userVal] = (optionCounts[userVal] || 0) + 1
+            } else {
+              // Trường hợp dữ liệu cũ hoặc không khớp, gộp vào 'Khác' hoặc tạo key mới
+              optionCounts[userVal] = (optionCounts[userVal] || 0) + 1
+            }
+          }
+        })
+
+        // Chuyển object thành mảng cho dễ hiển thị
+        stats.push({
+          id: question.id,
+          text: question.text,
+          options: Object.entries(optionCounts).map(([optText, count]) => ({
+            text: optText,
+            count: count
+          }))
+        })
       })
     })
 
-    // Sắp xếp theo số câu
-    qStats.sort((a, b) => {
-      const aIsIII = a.questionId.includes('III_')
-      const bIsIII = b.questionId.includes('III_')
-      if (aIsIII && !bIsIII) return -1
-      if (!aIsIII && bIsIII) return 1
-      return a.questionNum - b.questionNum
-    })
-
-    setQuestionStats(qStats)
+    setDetailedStats(stats)
   }
 
   // Xuất file Excel
@@ -457,56 +460,37 @@ export default function AdminDashboard() {
       {/* Tab: Thống kê câu hỏi */}
       {activeTab === 'questions' && (
         <div className="space-y-6">
-          {/* Biểu đồ cột thống kê Phân phối đáp án */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📊 Phân phối đáp án (A, B, C, D)</h3>
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={questionStats} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="question" angle={-45} textAnchor="end" interval={0} fontSize={10} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="A" stackId="a" fill="#8884d8" name="A" />
-                  <Bar dataKey="B" stackId="a" fill="#82ca9d" name="B" />
-                  <Bar dataKey="C" stackId="a" fill="#ffc658" name="C" />
-                  <Bar dataKey="D" stackId="a" fill="#FF8042" name="D" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
           {/* Bảng thống kê chi tiết */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Bảng thống kê chi tiết</h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-blue-600 text-white">
-                    <th className="border border-gray-300 px-4 py-2 text-center">STT</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Câu hỏi</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">A</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">B</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">C</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">D</th>
-                    <th className="border border-gray-300 px-4 py-2 text-center">Tổng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {questionStats.map((q, idx) => (
-                    <tr key={q.questionId} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="border border-gray-300 px-4 py-2 text-center">{idx + 1}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center font-medium">{q.questionId}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">{q['A'] || 0}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">{q['B'] || 0}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">{q['C'] || 0}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center">{q['D'] || 0}</td>
-                      <td className="border border-gray-300 px-4 py-2 text-center font-bold">{q.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Thống kê chi tiết từng câu hỏi</h3>
+            <div className="space-y-8">
+              {detailedStats.map((q, idx) => (
+                <div key={q.id} className="border rounded-lg p-4 bg-gray-50">
+                  <h4 className="font-bold text-blue-800 mb-3">{q.text}</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse border border-gray-300 bg-white">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border px-4 py-2 text-left">Lựa chọn</th>
+                          <th className="border px-4 py-2 text-center w-32">Số lượng</th>
+                          <th className="border px-4 py-2 text-center w-32">Tỷ lệ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {q.options.map((opt, optIdx) => (
+                          <tr key={optIdx} className="hover:bg-gray-50">
+                            <td className="border px-4 py-2">{opt.text}</td>
+                            <td className="border px-4 py-2 text-center font-bold">{opt.count}</td>
+                            <td className="border px-4 py-2 text-center text-gray-600">
+                              {totalResponses > 0 ? Math.round((opt.count / totalResponses) * 100) : 0}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -597,7 +581,7 @@ export default function AdminDashboard() {
 
               {/* Chi tiết câu trả lời */}
               <h4 className="font-bold text-lg mb-3">Chi tiết 30 câu hỏi kiến thức:</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {Object.keys(QUESTION_COLUMNS).map(qId => {
                   // Only show III and IV questions
                   if (!qId.startsWith('III_') && !qId.startsWith('IV_')) return null
@@ -605,12 +589,18 @@ export default function AdminDashboard() {
                   const colName = QUESTION_COLUMNS[qId]
                   const answer = selectedResponse[colName]
 
+                  // Find question ID
+                  let questionText = qId
+
+                  // Simple lookup for title if needed, but qId is enough for now
+
                   return (
                     <div
                       key={qId}
-                      className="p-2 rounded text-sm bg-gray-100 text-gray-800"
+                      className="p-3 rounded text-sm bg-gray-50 text-gray-800 border"
                     >
-                      <span className="font-medium">{qId}:</span> {answer || '-'}
+                      <span className="font-bold block mb-1 text-blue-800">{qId}</span>
+                      <span className="block">{answer || '-'}</span>
                     </div>
                   )
                 })}
