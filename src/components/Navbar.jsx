@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 export default function Navbar() {
   const location = useLocation()
-  
+
   const isActive = (path) => location.pathname === path
 
   return (
@@ -12,8 +12,8 @@ export default function Navbar() {
           <Link to="/" className="text-xl font-bold">
             📋 Khảo sát kiến thức phản vệ
           </Link>
-          
-          <div className="flex gap-4">
+
+          {/* <div className="flex gap-4">
             <Link
               to="/"
               className={`px-4 py-2 rounded transition ${
@@ -34,7 +34,7 @@ export default function Navbar() {
             >
               Thông kê kết quả
             </Link>
-          </div>
+          </div> */}
         </div>
       </div>
     </nav>
