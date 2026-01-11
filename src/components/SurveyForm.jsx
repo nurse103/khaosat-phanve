@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { supabase, TABLES, QUESTION_TO_COLUMN } from '../lib/supabase'
 import { SECTIONS } from '../lib/questionData'
+import { gradeAnswer } from '../lib/grading'
 
 export default function SurveyForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -17,9 +18,17 @@ export default function SurveyForm() {
     setSubmitError(null)
 
     try {
-      // Prepare data for survey_answers table
+      const timestamp = new Date().toISOString()
+
+      // 1. Prepare data for survey_answers table (RAW DATA)
       const answersData = {
-        submitted_at: new Date().toISOString(),
+        submitted_at: timestamp,
+        tong_so_cau: 30
+      }
+
+      // 2. Prepare data for survey_results table (GRADED DATA)
+      const resultsData = {
+        submitted_at: timestamp,
         tong_so_cau: 30
       }
 
@@ -28,28 +37,52 @@ export default function SurveyForm() {
       Object.keys(data).forEach(questionId => {
         const columnName = QUESTION_TO_COLUMN[questionId]
         if (columnName) {
-          answersData[columnName] = data[questionId]
+          const rawAnswer = data[questionId]
+
+          // Populate Raw Data
+          answersData[columnName] = rawAnswer
+
+          // Populate Graded Data
+          // Try to grade. If returns "Đúng"/"Sai" use it. If null, use raw answer.
+          const grade = gradeAnswer(questionId, rawAnswer)
+          resultsData[columnName] = grade !== null ? grade : rawAnswer
         }
       })
 
       // Save to both tables in parallel
       // 1. JSON responses (required)
-      const responsesResult = await supabase.from(TABLES.RESPONSES).insert([{
+      const responsesPromise = supabase.from(TABLES.RESPONSES).insert([{
         responses: data,
-        submitted_at: new Date().toISOString()
+        submitted_at: timestamp
       }])
 
-      if (responsesResult.error) throw responsesResult.error
-
       // 2. Individual columns (for Excel/Stats)
-      console.log('Sending data to survey_answers:', answersData)
-      const answersResult = await supabase.from(TABLES.ANSWERS).insert([answersData])
+      const answersPromise = supabase.from(TABLES.ANSWERS).insert([answersData])
+
+      // 3. Graded Results (for correctness analysis)
+      const resultsPromise = supabase.from(TABLES.RESULTS).insert([resultsData])
+
+      // Execute all inserts
+      const [responsesResult, answersResult, resultsResult] = await Promise.all([
+        responsesPromise,
+        answersPromise,
+        resultsPromise
+      ])
+
+      if (responsesResult.error) throw responsesResult.error
 
       if (answersResult.error) {
         console.error('Error saving to survey_answers:', answersResult.error)
         // Don't throw error to show success message to user
       } else {
         console.log('Successfully saved to survey_answers!')
+      }
+
+      if (resultsResult.error) {
+        console.error('Error saving to survey_results:', resultsResult.error)
+        // Note: Code assumes survey_results table exists with same schema as survey_answers
+      } else {
+        console.log('Successfully saved to survey_results!')
       }
 
       setSubmitSuccess(true)

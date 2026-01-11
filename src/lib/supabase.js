@@ -10,7 +10,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Database table names
 export const TABLES = {
   RESPONSES: 'survey_responses',    // Bảng JSON (backup)
-  ANSWERS: 'survey_answers'         // Bảng từng câu riêng lẻ (xuất Excel)
+  ANSWERS: 'survey_answers',        // Bảng từng câu riêng lẻ (xuất Excel)
+  RESULTS: 'survey_results'         // Bảng kết quả chấm điểm (Đúng/Sai)
 }
 
 // Mapping từ ID câu hỏi sang tên cột trong database (chữ thường)
