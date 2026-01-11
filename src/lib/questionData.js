@@ -37,6 +37,12 @@ export const SECTIONS = [
                 type: 'radio',
                 options: ['Nội khoa', 'Ngoại khoa'],
                 required: true
+            },
+            {
+                id: 'I_6',
+                text: '6. Tên Khoa/Phòng anh/chị đang công tác:',
+                type: 'text',
+                required: true
             }
         ]
     },

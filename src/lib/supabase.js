@@ -21,6 +21,7 @@ export const QUESTION_TO_COLUMN = {
   'I_3': 'i_3_trinh_do',
   'I_4': 'i_4_tham_nien',
   'I_5': 'i_5_khoa',
+  'I_6': 'i_6_ten_khoa',
   'II_1': 'ii_1_dao_tao_phan_ve',
   'II_2': 'ii_2_da_xu_tri_phan_ve',
   'II_3': 'ii_3_so_lan_xu_tri',

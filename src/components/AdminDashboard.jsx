@@ -210,7 +210,7 @@ export default function AdminDashboard() {
 
     const columnOrder = [
       'submitted_at',
-      'i_1_nam_sinh', 'i_2_gioi_tinh', 'i_3_trinh_do', 'i_4_tham_nien', 'i_5_khoa',
+      'i_1_nam_sinh', 'i_2_gioi_tinh', 'i_3_trinh_do', 'i_4_tham_nien', 'i_5_khoa', 'i_6_ten_khoa',
       'ii_1_dao_tao_phan_ve', 'ii_2_da_xu_tri_phan_ve', 'ii_3_so_lan_xu_tri',
       'ii_4_muc_do_tu_tin', 'ii_5_nam_vung_phac_do', 'ii_6_trang_thiet_bi',
       'ii_7_biet_hop_thuoc', 'ii_8_mong_muon_dao_tao',
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
 
     const headers = [
       'STT', 'Ngày gửi',
-      'Năm sinh', 'Giới tính', 'Trình độ', 'Thâm niên', 'Khoa',
+      'Năm sinh', 'Giới tính', 'Trình độ', 'Thâm niên', 'Khoa', 'Tên Khoa',
       'II.1', 'II.2', 'II.3', 'II.4', 'II.5', 'II.6', 'II.7', 'II.8',
       'III.1', 'III.2', 'III.3', 'III.4', 'III.5', 'III.6', 'III.7', 'III.8',
       'III.9', 'III.10', 'III.11', 'III.12', 'III.13', 'III.14', 'III.15',
@@ -522,6 +522,7 @@ export default function AdminDashboard() {
                     <th className="border px-3 py-2 text-left">Giới tính</th>
                     <th className="border px-3 py-2 text-left">Trình độ</th>
                     <th className="border px-3 py-2 text-left">Thâm niên</th>
+                    <th className="border px-3 py-2 text-left">Tên Khoa</th>
                     <th className="border px-3 py-2 text-center">Chi tiết</th>
                   </tr>
                 </thead>
@@ -536,6 +537,7 @@ export default function AdminDashboard() {
                       <td className="border px-3 py-2">{response.i_2_gioi_tinh || '-'}</td>
                       <td className="border px-3 py-2">{response.i_3_trinh_do || '-'}</td>
                       <td className="border px-3 py-2">{response.i_4_tham_nien || '-'}</td>
+                      <td className="border px-3 py-2">{response.i_6_ten_khoa || '-'}</td>
                       <td className="border px-3 py-2 text-center">
                         <button
                           onClick={() => setSelectedResponse(response)}
@@ -568,7 +570,7 @@ export default function AdminDashboard() {
             </div>
             <div className="p-6">
               {/* Thông tin cơ bản */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
                 <div className="bg-gray-100 p-3 rounded">
                   <p className="text-sm text-gray-500">Năm sinh</p>
                   <p className="font-bold">{selectedResponse.i_1_nam_sinh || '-'}</p>
@@ -584,6 +586,10 @@ export default function AdminDashboard() {
                 <div className="bg-gray-100 p-3 rounded">
                   <p className="text-sm text-gray-500">Thâm niên</p>
                   <p className="font-bold">{selectedResponse.i_4_tham_nien || '-'}</p>
+                </div>
+                <div className="bg-gray-100 p-3 rounded">
+                  <p className="text-sm text-gray-500">Tên Khoa</p>
+                  <p className="font-bold">{selectedResponse.i_6_ten_khoa || '-'}</p>
                 </div>
               </div>
 
