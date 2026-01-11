@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase, TABLES } from '../lib/supabase'
 import * as XLSX from 'xlsx'
 import {
@@ -7,8 +7,14 @@ import {
 } from 'recharts'
 import { SECTIONS } from '../lib/questionData'
 
-// Mapping câu hỏi sang tên cột trong database (Vẫn cần để truy xuất dữ liệu từ row)
+// Mapping câu hỏi sang tên cột trong database
 const QUESTION_COLUMNS = {
+  // PHẦN II: THỰC TRẠNG
+  'II_1': 'ii_1_dao_tao_phan_ve', 'II_2': 'ii_2_da_xu_tri_phan_ve',
+  'II_3': 'ii_3_so_lan_xu_tri', 'II_4': 'ii_4_muc_do_tu_tin',
+  'II_5': 'ii_5_nam_vung_phac_do', 'II_6': 'ii_6_trang_thiet_bi',
+  'II_7': 'ii_7_biet_hop_thuoc', 'II_8': 'ii_8_mong_muon_dao_tao',
+  // PHẦN III: KIẾN THỨC
   'III_1': 'iii_1_phan_ve_la_gi', 'III_2': 'iii_2_dau_hieu_som',
   'III_3': 'iii_3_nguyen_nhan_benh_vien', 'III_4': 'iii_4_khong_phai_trieu_chung',
   'III_5': 'iii_5_so_muc_do', 'III_6': 'iii_6_dac_trung_do_2',
@@ -19,6 +25,7 @@ const QUESTION_COLUMNS = {
   'III_15': 'iii_15_thoi_gian_theo_doi', 'III_16': 'iii_16_dau_hieu_nang',
   'III_17': 'iii_17_trieu_chung_ho_hap', 'III_18': 'iii_18_tien_su_quan_trong',
   'III_19': 'iii_19_thoi_gian_xay_ra', 'III_20': 'iii_20_dau_hieu_khong_noi',
+  // PHẦN IV: XỬ TRÍ
   'IV_21': 'iv_21_do_phan_ve_penicillin', 'IV_22': 'iv_22_xu_tri_dau_tien',
   'IV_23': 'iv_23_do_phan_ve_truyen_dich', 'IV_24': 'iv_24_hanh_dong_quan_trong',
   'IV_25': 'iv_25_thanh_phan_mau', 'IV_26': 'iv_26_hanh_dong_truyen_mau',
@@ -47,6 +54,17 @@ export default function AdminDashboard() {
   const [handledData, setHandledData] = useState([])
   const [detailedStats, setDetailedStats] = useState([])
   const [totalResponses, setTotalResponses] = useState(0)
+
+  // Tạo map để tra cứu nội dung câu hỏi nhanh
+  const questionTextMap = useMemo(() => {
+    const map = {}
+    SECTIONS.forEach(section => {
+      section.questions.forEach(q => {
+        map[q.id] = q.text
+      })
+    })
+    return map
+  }, [])
 
   useEffect(() => {
     fetchResponses()
@@ -139,13 +157,13 @@ export default function AdminDashboard() {
     })
     setHandledData(Object.entries(confidentCount).map(([name, value]) => ({ name, 'Số lượng': value })))
 
-    // === THỐNG KÊ CHI TIẾT TỪNG CÂU HỎI (Phần III và IV) ===
+    // === THỐNG KÊ CHI TIẾT TỪNG CÂU HỎI (Phần II, III và IV) ===
     const stats = []
 
-    // Lấy danh sách câu hỏi từ SECTIONS
-    const knowledgeSections = SECTIONS.filter(s => s.id === 'knowledge' || s.id === 'treatment')
+    // Lấy danh sách câu hỏi từ SECTIONS (Thêm 'status' cho phần II)
+    const activeSections = SECTIONS.filter(s => s.id === 'status' || s.id === 'knowledge' || s.id === 'treatment')
 
-    knowledgeSections.forEach(section => {
+    activeSections.forEach(section => {
       section.questions.forEach(question => {
         const colName = QUESTION_COLUMNS[question.id]
         if (!colName) return
@@ -162,17 +180,16 @@ export default function AdminDashboard() {
         data.forEach(item => {
           const userVal = item[colName]
           if (userVal) {
-            // Chuẩn hóa một chút nếu cần, ở đây giả sử chính xác
+            // Chuẩn hóa một chút nếu cần
             if (optionCounts.hasOwnProperty(userVal)) {
               optionCounts[userVal] = (optionCounts[userVal] || 0) + 1
             } else {
-              // Trường hợp dữ liệu cũ hoặc không khớp, gộp vào 'Khác' hoặc tạo key mới
+              // Trường hợp dữ liệu không khớp hoặc option mở (nếu có), gộp vào key chính nó
               optionCounts[userVal] = (optionCounts[userVal] || 0) + 1
             }
           }
         })
 
-        // Chuyển object thành mảng cho dễ hiển thị
         stats.push({
           id: question.id,
           text: question.text,
@@ -318,15 +335,6 @@ export default function AdminDashboard() {
       {/* Tab: Tổng quan */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Summary Cards */}
-          <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
-            <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
-            <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
-              <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
-              <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
-            </div>
-          </div>
-
           {/* Row 1: Giới tính + Trình độ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Biểu đồ tròn - Giới tính */}
@@ -462,7 +470,7 @@ export default function AdminDashboard() {
         <div className="space-y-6">
           {/* Bảng thống kê chi tiết */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Thống kê chi tiết từng câu hỏi</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">📋 Thống kê chi tiết từng câu hỏi (Phần II, III, IV)</h3>
             <div className="space-y-8">
               {detailedStats.map((q, idx) => (
                 <div key={q.id} className="border rounded-lg p-4 bg-gray-50">
@@ -580,26 +588,21 @@ export default function AdminDashboard() {
               </div>
 
               {/* Chi tiết câu trả lời */}
-              <h4 className="font-bold text-lg mb-3">Chi tiết 30 câu hỏi kiến thức:</h4>
+              <h4 className="font-bold text-lg mb-3">Chi tiết câu trả lời (Phần II, III, IV):</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {Object.keys(QUESTION_COLUMNS).map(qId => {
-                  // Only show III and IV questions
-                  if (!qId.startsWith('III_') && !qId.startsWith('IV_')) return null
+                  // Hiển thị cả phần II, III, IV
+                  if (!qId.startsWith('II_') && !qId.startsWith('III_') && !qId.startsWith('IV_')) return null
 
                   const colName = QUESTION_COLUMNS[qId]
                   const answer = selectedResponse[colName]
-
-                  // Find question ID
-                  let questionText = qId
-
-                  // Simple lookup for title if needed, but qId is enough for now
 
                   return (
                     <div
                       key={qId}
                       className="p-3 rounded text-sm bg-gray-50 text-gray-800 border"
                     >
-                      <span className="font-bold block mb-1 text-blue-800">{qId}</span>
+                      <span className="font-bold block mb-1 text-blue-800">{questionTextMap[qId] || qId}</span>
                       <span className="block">{answer || '-'}</span>
                     </div>
                   )
