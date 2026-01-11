@@ -70,12 +70,16 @@ export default function AdminDashboard() {
         .select('*')
         .order('submitted_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error:', error)
+        setError(`Không thể tải dữ liệu. Lỗi: ${error.message || error}`)
+        return
+      }
       setResponses(data || [])
       calculateAllStats(data || [])
     } catch (err) {
       console.error('Error fetching responses:', err)
-      setError('Không thể tải dữ liệu. Vui lòng thử lại.')
+      setError(`Không thể tải dữ liệu. Lỗi: ${err.message || err}`)
     } finally {
       setLoading(false)
     }
@@ -336,19 +340,19 @@ export default function AdminDashboard() {
         <div className="space-y-6">
           {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col items-center justify-center">
-                <div className="mb-2">
-                  <span className="inline-block text-5xl text-blue-500">📥</span>
+              <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
+                <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
+                <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
+                  <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
+                  <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
                 </div>
-                <p className="text-gray-500 text-sm">Tổng phản hồi</p>
-                <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
               </div>
-              <div className="bg-white rounded-lg shadow p-4 text-center flex flex-col items-center justify-center">
-                <div className="mb-2">
-                  <span className="inline-block text-5xl text-green-500">⭐</span>
+              <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
+                <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-green-500">⭐</span>
+                <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
+                  <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
+                  <p className="text-gray-500 text-sm mt-2">Điểm trung bình</p>
                 </div>
-                <p className="text-gray-500 text-sm">Điểm trung bình</p>
-                <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
               </div>
             </div>
 
