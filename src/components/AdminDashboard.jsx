@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react'
 import { supabase, TABLES } from '../lib/supabase'
 import * as XLSX from 'xlsx'
-import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer 
+import {
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
 
 // Đáp án đúng cho các câu hỏi kiến thức (30 câu: Phần III 1-20 và Phần IV 21-30)
 const CORRECT_ANSWERS = {
-  'III_1': 'B', 'III_2': 'A', 'III_3': 'B', 'III_4': 'B', 'III_5': 'B',
-  'III_6': 'B', 'III_7': 'B', 'III_8': 'C', 'III_9': 'B', 'III_10': 'B',
-  'III_11': 'B', 'III_12': 'A', 'III_13': 'B', 'III_14': 'A', 'III_15': 'A',
-  'III_16': 'D', 'III_17': 'A', 'III_18': 'C', 'III_19': 'B', 'III_20': 'B',
-  'IV_21': 'A', 'IV_22': 'B', 'IV_23': 'C', 'IV_24': 'B', 'IV_25': 'C',
-  'IV_26': 'D', 'IV_27': 'B', 'IV_28': 'B', 'IV_29': 'A', 'IV_30': 'D'
+  'III_1': 'B', 'III_2': 'B', 'III_3': 'B', 'III_4': 'C', 'III_5': 'C',
+  'III_6': 'B', 'III_7': 'B', 'III_8': 'C', 'III_9': 'C', 'III_10': 'B',
+  'III_11': 'B', 'III_12': 'B', 'III_13': 'C', 'III_14': 'D', 'III_15': 'D',
+  'III_16': 'B', 'III_17': 'B', 'III_18': 'B', 'III_19': 'B', 'III_20': 'B',
+  'IV_21': 'A', 'IV_22': 'B', 'IV_23': 'C', 'IV_24': 'C', 'IV_25': 'D',
+  'IV_26': 'B', 'IV_27': 'C', 'IV_28': 'B', 'IV_29': 'B', 'IV_30': 'A'
 }
 
 // Mapping câu hỏi sang tên cột trong database
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       genderCount[gender] = (genderCount[gender] || 0) + 1
     })
     setGenderData(Object.entries(genderCount).map(([name, value]) => ({
-      name, value, 
+      name, value,
       percent: Math.round((value / data.length) * 100),
       color: GENDER_COLORS[name] || '#8884d8'
     })))
@@ -159,18 +159,18 @@ export default function AdminDashboard() {
       const colName = QUESTION_COLUMNS[qId]
       let correctCount = 0
       let wrongCount = 0
-      
+
       data.forEach(item => {
         const answer = item[colName]
         if (answer === 'Đúng') correctCount++
         else if (answer === 'Sai') wrongCount++
       })
-      
+
       // Lấy số câu từ qId (III_1 -> 1, IV_21 -> 21)
-      const questionNum = qId.includes('III_') 
-        ? parseInt(qId.replace('III_', '')) 
+      const questionNum = qId.includes('III_')
+        ? parseInt(qId.replace('III_', ''))
         : parseInt(qId.replace('IV_', ''))
-      
+
       qStats.push({
         question: qId.includes('III_') ? `Câu ${questionNum}` : `Câu ${questionNum}`,
         questionId: qId,
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
         total: correctCount + wrongCount
       })
     })
-    
+
     // Sắp xếp theo số câu
     qStats.sort((a, b) => {
       const aIsIII = a.questionId.includes('III_')
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
       if (!aIsIII && bIsIII) return 1
       return a.questionNum - b.questionNum
     })
-    
+
     setQuestionStats(qStats)
   }
 
@@ -198,21 +198,21 @@ export default function AdminDashboard() {
     if (responses.length === 0) return
 
     const columnOrder = [
-      'submitted_at', 
+      'submitted_at',
       'i_1_nam_sinh', 'i_2_gioi_tinh', 'i_3_trinh_do', 'i_4_tham_nien', 'i_5_khoa',
-      'ii_1_dao_tao_phan_ve', 'ii_2_da_xu_tri_phan_ve', 'ii_3_so_lan_xu_tri', 
-      'ii_4_muc_do_tu_tin', 'ii_5_nam_vung_phac_do', 'ii_6_trang_thiet_bi', 
+      'ii_1_dao_tao_phan_ve', 'ii_2_da_xu_tri_phan_ve', 'ii_3_so_lan_xu_tri',
+      'ii_4_muc_do_tu_tin', 'ii_5_nam_vung_phac_do', 'ii_6_trang_thiet_bi',
       'ii_7_biet_hop_thuoc', 'ii_8_mong_muon_dao_tao',
-      'iii_1_phan_ve_la_gi', 'iii_2_dau_hieu_som', 'iii_3_nguyen_nhan_benh_vien', 
+      'iii_1_phan_ve_la_gi', 'iii_2_dau_hieu_som', 'iii_3_nguyen_nhan_benh_vien',
       'iii_4_khong_phai_trieu_chung', 'iii_5_so_muc_do', 'iii_6_dac_trung_do_2',
-      'iii_7_tu_tin_nhan_biet', 'iii_8_tu_tin_phan_biet', 'iii_9_thuoc_dau_tay', 
+      'iii_7_tu_tin_nhan_biet', 'iii_8_tu_tin_phan_biet', 'iii_9_thuoc_dau_tay',
       'iii_10_duong_dung_adrenaline', 'iii_11_lieu_adrenaline', 'iii_12_lieu_thu_hai',
-      'iii_13_tu_the_benh_nhan', 'iii_14_kho_khan_lon_nhat', 'iii_15_thoi_gian_theo_doi', 
+      'iii_13_tu_the_benh_nhan', 'iii_14_kho_khan_lon_nhat', 'iii_15_thoi_gian_theo_doi',
       'iii_16_dau_hieu_nang', 'iii_17_trieu_chung_ho_hap', 'iii_18_tien_su_quan_trong',
       'iii_19_thoi_gian_xay_ra', 'iii_20_dau_hieu_khong_noi',
-      'iv_21_do_phan_ve_penicillin', 'iv_22_xu_tri_dau_tien', 'iv_23_do_phan_ve_truyen_dich', 
+      'iv_21_do_phan_ve_penicillin', 'iv_22_xu_tri_dau_tien', 'iv_23_do_phan_ve_truyen_dich',
       'iv_24_hanh_dong_quan_trong', 'iv_25_thanh_phan_mau', 'iv_26_hanh_dong_truyen_mau',
-      'iv_27_do_phan_ve_ong_dot', 'iv_28_tinh_lieu_adrenaline', 'iv_29_xu_tri_uu_tien', 
+      'iv_27_do_phan_ve_ong_dot', 'iv_28_tinh_lieu_adrenaline', 'iv_29_xu_tri_uu_tien',
       'iv_30_xu_tri_di_ung_khang_sinh',
       'so_cau_dung', 'diem_so'
     ]
@@ -317,11 +317,10 @@ export default function AdminDashboard() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 font-medium transition ${
-                activeTab === tab 
-                  ? 'text-blue-600 border-b-2 border-blue-600' 
+              className={`px-4 py-2 font-medium transition ${activeTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               {tab === 'overview' ? '📊 Tổng quan' : tab === 'questions' ? '📋 Thống kê câu hỏi' : '📄 Dữ liệu chi tiết'}
             </button>
@@ -339,22 +338,22 @@ export default function AdminDashboard() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
-                <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
-                <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
-                  <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
-                  <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
-                <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-green-500">⭐</span>
-                <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
-                  <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
-                  <p className="text-gray-500 text-sm mt-2">Điểm trung bình</p>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
+              <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-blue-500">📥</span>
+              <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
+                <p className="text-3xl font-bold text-blue-600">{totalResponses}</p>
+                <p className="text-gray-500 text-sm mt-2">Tổng phản hồi</p>
               </div>
             </div>
+            <div className="bg-white rounded-lg shadow p-4 flex items-center h-32">
+              <span className="inline-flex items-center justify-center h-full w-24 text-6xl text-green-500">⭐</span>
+              <div className="flex-1 flex flex-col items-start justify-center h-full pl-4">
+                <p className="text-3xl font-bold text-green-600">{avgScore}%</p>
+                <p className="text-gray-500 text-sm mt-2">Điểm trung bình</p>
+              </div>
+            </div>
+          </div>
 
           {/* Row 1: Giới tính + Trình độ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -554,7 +553,7 @@ export default function AdminDashboard() {
       {activeTab === 'data' && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4">📄 Danh sách phản hồi ({responses.length})</h3>
-          
+
           {responses.length === 0 ? (
             <p className="text-gray-500 text-center py-8">Chưa có dữ liệu khảo sát nào.</p>
           ) : (
@@ -658,11 +657,11 @@ export default function AdminDashboard() {
                   const answer = selectedResponse[colName]
                   const isCorrect = answer === 'Đúng'
                   return (
-                    <div 
+                    <div
                       key={qId}
                       className={`p-2 rounded text-sm ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                     >
-                      <span className="font-medium">{qId}:</span> {answer || '-'} 
+                      <span className="font-medium">{qId}:</span> {answer || '-'}
                       <span className="ml-1">{isCorrect ? '✓' : '✗'}</span>
                     </div>
                   )
