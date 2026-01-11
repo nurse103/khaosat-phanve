@@ -80,7 +80,11 @@ export default function SurveyForm() {
 
       if (resultsResult.error) {
         console.error('Error saving to survey_results:', resultsResult.error)
-        // Note: Code assumes survey_results table exists with same schema as survey_answers
+        const errMsg = resultsResult.error.message || JSON.stringify(resultsResult.error)
+        alert(`Lỗi lưu bảng survey_results: ${errMsg}\n\nHãy kiểm tra lại cột 'i_6_ten_khoa' và RLS Policy!`)
+        setSubmitError(`Lỗi lưu kết quả chấm điểm (survey_results): ${errMsg}`)
+        setIsSubmitting(false)
+        return
       } else {
         console.log('Successfully saved to survey_results!')
       }
@@ -90,7 +94,9 @@ export default function SurveyForm() {
       window.scrollTo(0, 0)
     } catch (error) {
       console.error('Error submitting survey:', error)
-      setSubmitError('Có lỗi xảy ra khi gửi phiếu khảo sát. Vui lòng thử lại.')
+      const errDetail = error.message || JSON.stringify(error)
+      alert(`Đã có lỗi xảy ra: ${errDetail}`)
+      setSubmitError(`Có lỗi chi tiết: ${errDetail}`)
     } finally {
       setIsSubmitting(false)
     }
